@@ -47,7 +47,7 @@ accelerate launch run.py PATH/TO/CONFIG.JSON --seed 42  # for multi-gpu
 ```
 We recommend running our experiments with the number of GPUs mentioned in config names to ensure the correct batch sizes. 
 
-If you have any questions, feel free to open an issue or contact us.
+If you have any questions, feel free to open an issue or contact us via [email](mailto:py4contact@gmail.com).
 
 ## Acknowledgements
 This codebase is built on top of [RLHFlow](https://github.com/RLHFlow/RLHF-Reward-Modeling/tree/main/bradley-terry-rm). Special thanks to its creators for their valuable contributions and insights.
