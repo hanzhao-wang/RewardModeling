@@ -3,5 +3,3 @@ __pycache__/
 *.pyo
 *.pyd
 wandb/
-bt_models/
-statdata/
