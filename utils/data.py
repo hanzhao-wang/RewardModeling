@@ -78,7 +78,7 @@ def build_dataset(
         sample["attention_mask_k"] = tokenized_neg["attention_mask"]
         sample["score_j"] = float(sample["chosen_score"])
         sample["score_k"] = float(sample["rejected_score"])
-        if label_type!="original":
+        '''
             # ! we make sure chosen/rejected are determined by score_j and score_k
             if sample["score_j"] - sample["score_k"] < 0:
                 sample["input_ids_j"] = tokenized_neg["input_ids"]
@@ -87,7 +87,7 @@ def build_dataset(
                 sample["attention_mask_k"] = tokenized_pos["attention_mask"]
                 sample["score_j"] = float(sample["rejected_score"])
                 sample["score_k"] = float(sample["chosen_score"])
-
+        '''
         # ! we scale score_j and score_k with diff_scaling_factor here
         # ! instead of keeping the raw score in the dataitem,
         # ! as we might use them for evaluation loss computation later.
