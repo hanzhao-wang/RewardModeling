@@ -28,6 +28,7 @@ class ScriptArguments:
     gradient_accumulation_steps: Optional[int] = field(default=32)
     learning_rate: Optional[float] = field(default=1e-5)
     weight_decay: Optional[float] = field(default=0.001)
+    adam_beta1: Optional[float] = field(default=0.9)
     model_name: Optional[str] = field(
         default="google/gemma-2b-it",  # "mistralai/Mistral-7B-Instruct-v0.2",
         metadata={
@@ -115,6 +116,12 @@ class ScriptArguments:
         default=None,
         metadata={
             "help": "The ratio of the selected positive samples to the total number of samples"
+        },
+    )
+    select_method: Optional[str] = field(
+        default='uniform',
+        metadata={
+            "help": "The selection method"
         },
     )
     warmup_ratio: Optional[float] = field(

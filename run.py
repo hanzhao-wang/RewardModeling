@@ -89,6 +89,7 @@ def main(
 
     if script_args.selected_pos_ratio is not None:
         output_name += f"_pos{script_args.selected_pos_ratio}"
+        output_name += f"_met{script_args.select_method}"
     if script_args.trainer_type == "bttr":
         output_name += f"_bttrtheta{script_args.margin_delta}"
     if script_args.trainer_type == "ringemargin":
@@ -115,6 +116,7 @@ def main(
             n_samples=32 * 1024,
             positive_ratio=script_args.selected_pos_ratio,
             seed=seed,
+            select=script_args.select_method,
         )
 
     logger.info("train_dataset size:", len(train_dataset))
@@ -229,7 +231,7 @@ def main(
     accelerator = Accelerator()
     if accelerator.is_main_process:
         wandb.init(
-            project="OrdinalRM",
+            project="AccessRM",
             name=output_name,
         )
 

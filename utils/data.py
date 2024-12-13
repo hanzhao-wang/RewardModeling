@@ -78,15 +78,15 @@ def build_dataset(
         sample["attention_mask_k"] = tokenized_neg["attention_mask"]
         sample["score_j"] = float(sample["chosen_score"])
         sample["score_k"] = float(sample["rejected_score"])
-
-        # ! we make sure chosen/rejected are determined by score_j and score_k
-        if sample["score_j"] - sample["score_k"] < 0:
-            sample["input_ids_j"] = tokenized_neg["input_ids"]
-            sample["attention_mask_j"] = tokenized_neg["attention_mask"]
-            sample["input_ids_k"] = tokenized_pos["input_ids"]
-            sample["attention_mask_k"] = tokenized_pos["attention_mask"]
-            sample["score_j"] = float(sample["rejected_score"])
-            sample["score_k"] = float(sample["chosen_score"])
+        if label_type!="original":
+            # ! we make sure chosen/rejected are determined by score_j and score_k
+            if sample["score_j"] - sample["score_k"] < 0:
+                sample["input_ids_j"] = tokenized_neg["input_ids"]
+                sample["attention_mask_j"] = tokenized_neg["attention_mask"]
+                sample["input_ids_k"] = tokenized_pos["input_ids"]
+                sample["attention_mask_k"] = tokenized_pos["attention_mask"]
+                sample["score_j"] = float(sample["rejected_score"])
+                sample["score_k"] = float(sample["chosen_score"])
 
         # ! we scale score_j and score_k with diff_scaling_factor here
         # ! instead of keeping the raw score in the dataitem,
@@ -96,6 +96,10 @@ def build_dataset(
         # add discrete label
         if label_type is None:
             pass
+        elif label_type=="original":
+            sample["label"] = 1.0
+            sample["score_gap"] = sample["score_j"] - sample["score_k"]
+      
         elif label_type == "oracle":
             sample["label"] = torch.nn.functional.sigmoid(
                 torch.tensor(sample["score_j"] - sample["score_k"])
@@ -178,8 +182,9 @@ def post_filter_by_ratio(
     n_samples: int = 5000,
     positive_ratio: float = 1.0,
     seed: int = 42,
+    select: str = 'uniform'
 ):
-    """Filter the dataset by ratio of binary and tied samples.
+    """Filter the dataset by ratio of binary (positive) and randomly flipped samples.
 
     Parameters
     ----------
@@ -191,24 +196,59 @@ def post_filter_by_ratio(
         the binary sample ratio, by default 1.0
     seed : int, optional
         seed for reproducibility, by default 42
-
+    select :  optional
+        uniformly flip (uniform) or only the most positive_ratio% difficult part (most)
     Returns
     -------
     Dataset
-        filtered dataset
+        dataset with 1-positive ratio X n_samples randomly flipped labels; When X>0 need the input dataset to be oracle
     """
+
     n_pos = int(n_samples * positive_ratio)
-    n_tied = n_samples - n_pos
+    n_flipped = n_samples - n_pos
 
-    ds_pos = ds.filter(lambda x: x["label"] == 1)
-    ds_tied = ds.filter(lambda x: x["label"] < 1 and x["label"] > 0)
+    ds = ds.shuffle(seed=seed)
 
-    return concatenate_datasets(
-        [
-            ds_pos.shuffle(seed=seed).select(range(min(n_pos, len(ds_pos)))),
-            ds_tied.shuffle(seed=seed).select(range(min(n_tied, len(ds_tied)))),
-        ]
-    )
+    if positive_ratio == 1.0:
+        # All positive, just select the first n_samples
+        ds_pos = ds.select(range(n_samples))
+        return ds_pos
+
+    elif positive_ratio == 0.0:
+        # All randomly flipped
+        ds_flipped = ds.select(range(n_samples))
+        random_flips = torch.bernoulli(torch.tensor([0.5]*n_samples)).int().tolist()
+        ds_flipped = ds_flipped.map(lambda x, idx: {"label": random_flips[idx]}, with_indices=True)
+        return ds_flipped
+
+    else:
+        # Partial ratio
+        if select=='uniform':
+            ds_pos = ds.select(range(n_pos))
+            ds_flipped = ds.select(range(n_pos, n_pos + n_flipped))
+
+            random_flips = torch.bernoulli(torch.tensor([0.5]*n_flipped)).int().tolist()
+            ds_flipped = ds_flipped.map(lambda x, idx: {"label": random_flips[idx]}, with_indices=True)
+        else:
+            # "most": pick the top n_flipped samples closest to 0.5 and flip them
+            # First select the total n_samples
+            ds_subset = ds.select(range(n_samples))
+
+            # Compute difficulty as the absolute difference from 0.5
+            ds_subset = ds_subset.map(lambda x: {"distance": abs(x["score_gap"])})
+
+            # Sort by 'distance' to get most difficult samples at the top
+            ds_subset = ds_subset.sort("distance")
+
+            # ds_flipped: first n_flipped (most difficult)
+            ds_flipped = ds_subset.select(range(n_flipped))
+            # ds_pos: next n_pos
+            ds_pos = ds_subset.select(range(n_flipped, n_flipped + n_pos))
+
+            random_flips = torch.bernoulli(torch.tensor([0.5]*n_flipped)).int().tolist()
+            ds_flipped = ds_flipped.map(lambda x, idx: {"label": random_flips[idx]}, with_indices=True)
+
+        return concatenate_datasets([ds_pos, ds_flipped])
 
 
 @dataclass
