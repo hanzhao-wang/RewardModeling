@@ -56,23 +56,46 @@ def infer_rm_score_formatted(
 @click.option(
     "--built_from", type=click.Choice(["local", "hub"]), default="local"
 )
-def main(built_from: Literal["local", "hub"]):
+@click.option(
+    "--data_path",
+    type=str,
+    default="RLHFlow/PKU-SafeRLHF-30K-standard",
+)
+def main(built_from: Literal["local", "hub"],
+data_path: str = "RLHFlow/UltraFeedback-preference-standard"):
     if built_from == "local":
         ds = load_dataset(
-            "Skywork/Skywork-Reward-Preference-80K-v0.2", split="train"
+            data_path, name='default', split="test"
         )
+        '''
         infer_rm_score_formatted(
             ds,
             model_name="Skywork/Skywork-Reward-Gemma-2-27B-v0.2",
-            save_name="prefer_skywork",
+            save_name="",
         )
+        '''
+        infer_rm_score_formatted(
+            ds,
+            model_name="PKU-Alignment/beaver-7b-v2.0-reward",
+            save_name="",
+        )
+        
     elif built_from == "hub":
-        ds = load_dataset(
-            "BigCatc/Skywork-Reward-Preference-80K-v0.2-ordinal", split="train"
-        )
-        ds.save_to_disk(
-            "statdata/prefer_skywork_Skywork/Skywork-Reward-Gemma-2-27B-v0.2"
-        )
+        if data_path == "Skywork-Reward-Preference-80K-v0.2":
+            ds = load_dataset(
+                "BigCatc/Skywork-Reward-Preference-80K-v0.2-ordinal", split="train"
+            )
+            ds.save_to_disk(
+                "statdata/prefer_skywork_Skywork/Skywork-Reward-Gemma-2-27B-v0.2"
+            )
+        else:
+            ds = load_dataset(
+                data_path, split="train"
+            )
+            ds.save_to_disk(
+                "statdata/"+data_path
+            )
+
 
 
 if __name__ == "__main__":
