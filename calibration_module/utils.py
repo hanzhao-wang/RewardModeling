@@ -258,20 +258,20 @@ def compute_calibration_summary(
         metrics_dict['name'] = name
         estimator_metrics.append(metrics_dict)
 
-        ax1.plot(prob_pred, prob_true, 's-', label=name)
-        ax2.hist(df_eval[score_col], range=(0, 1), bins=n_bins, label=name, histtype='step', lw=2)
+        ax1.plot(prob_pred, prob_true, 's-', label=name,markersize=10,linewidth=4)
+        ax2.hist(df_eval[score_col], range=(0, 1), bins=n_bins, label=name, histtype='step', lw=2, density=True)
 
-    ax1.plot([0, 1], [0, 1], 'k:', label='perfect')
+    ax1.plot([0, 1], [0, 1], 'k:', label='Perfect')
 
-    ax1.set_xlabel('Fraction of positives (Predicted)')
-    ax1.set_ylabel('Fraction of positives (Actual)')
+    ax1.set_xlabel('$p(x,y_1,y_2)$ (Predicted)')
+    ax1.set_ylabel('$p(x,y_1,y_2)$ (Empirical)')
     ax1.set_ylim([-0.05, 1.05])
     ax1.legend(loc='upper left', ncol=2)
-    ax1.set_title('Calibration Plots (Reliability Curve)')
+    ax1.set_title('Calibration Plot')
 
-    ax2.set_xlabel('Predicted scores')
-    ax2.set_ylabel('Count')
-    ax2.set_title('Histogram of Predicted Scores')
+    ax2.set_xlabel('$p(x,y_1,y_2)$ (Predicted)')
+    ax2.set_ylabel('Frequency (%)') 
+    ax2.set_title('Histogram of $p(x,y_1,y_2)$')
     ax2.legend(loc='upper right', ncol=2)
 
     plt.tight_layout()

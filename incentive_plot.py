@@ -4,6 +4,9 @@ import random
 from functools import partial
 from pathlib import Path
 from typing import *
+import matplotlib.lines as mlines
+
+
 
 from numpy.random import default_rng
 import os
@@ -92,19 +95,21 @@ def rej_prob_simulator(
 
 
 
-def rej_prob(mode, original_preference,  num_sampled_data,use_log,r):
+def rej_prob(mode, original_preference,  num_sampled_data,use_log,r,R_up=None):
     if mode=='self':
-        p_mean=(1+r**2)/2
+        p_mean=(1+r)/2
     else:
         #check if all original_preference>1/2
         if not np.all(original_preference>=1/2):
             raise ValueError("All original preference should be greater than 1/2")
     
         p_mean=np.mean(original_preference)*r+(1-r)/2
+    if R_up is None:
+       R_up=p_mean
     
 
     
-    prob=binom.cdf(num_sampled_data* p_mean, num_sampled_data, p_mean)
+    prob=binom.cdf(num_sampled_data* R_up, num_sampled_data, p_mean)
     if use_log:
         return np.log(1-prob)
     else:
@@ -145,7 +150,7 @@ def agent_data_simulator(original_preference,r, mode=None):
     length=len(original_preference)
     
     if mode=='self':
-        mean_values=(1+r**2)/2
+        mean_values=(1+r)/2
     else:
         #check if all original_preference>1/2
         if not np.all(original_preference>=1/2):
@@ -166,8 +171,9 @@ def T_create(data_batch):
 def R_create(Ep, mode, data_batch, r):
         # so shape => (num_experiments, 2)
         num_experiments = data_batch.shape[0]
+        r=r+1e-4
         if mode =='self':
-            high=(1+r**2)/2
+            high=(1+r)/2
         else:
             high=Ep*r+(1-r)/2
         high=high
@@ -201,22 +207,6 @@ def get_incentive(
     return dev
 
 
-def histogram_plot(train_dataset,name=''):
-    ####plot histogram
-    preference_score = train_dataset['preference_score']
-
-
-    plt.figure(figsize=(10, 10))  
-    plt.hist(preference_score, bins=30, edgecolor='black')  # Adjust 'bins' as needed
-
-    plt.xlabel("Score")
-    plt.ylabel("Frequency")
-    os.makedirs("fig", exist_ok=True)
-    sv_name=name+'_'
-    sv_name+='_histogram.png'
-    plt.savefig("fig/"+sv_name, dpi=300,bbox_inches='tight')  # dpi=300 for high-resolution figure
-
-    plt.show()
 
 def calibrate_data(train_dataset,eval_dataset,n_bins=20):
     preference_score = np.array(train_dataset['preference_score'])
@@ -225,59 +215,31 @@ def calibrate_data(train_dataset,eval_dataset,n_bins=20):
     histogram.fit(preference_score, labels)
     histogram_probs = histogram.predict(np.array(eval_dataset['preference_score']))
     return histogram_probs
-def calibrate_plot(eval_dataset,histogram_probs,n_bins=20):
-    score_col = 'score'
-    label_col='label'
-    df_pre = pd.DataFrame({
-        label_col: eval_dataset['label'],
-        score_col: eval_dataset['preference_score']
-    })
-    df_post = pd.DataFrame({
-        label_col: eval_dataset['label'],
-        score_col:  histogram_probs
-    })
 
-    # key to the dictionary is for giving the result
-    # a descriptive name
-    eval_dict = {
-        'Before Calibrate': df_pre,
-        'After Calibrate': df_post
-    }
-
-
-    plt.rcParams['figure.figsize'] = [10, 8]
-  
-    df_result = compute_calibration_summary(eval_dict, label_col, score_col, n_bins=n_bins)
-    print(df_result)
 
 def incentive_plot(
     name #data can be 'sky','PKU','Helpsteer','Ultra'
 ):
     # change default style figure and font size
     
-    plt.rcParams['font.size'] = 16
     n_bins = 30
 
     # Set the random seed for reproducibility
     seed = 4    
     set_random_seed(seed)
 
-    mode='self'
+
     exact=True
 
-    r_list=[0.1,0.3,0.5,0.7,0.9]
-    r_list=np.linspace(0.01,0.9,101)
-
-    N_list=[10,50,100,500,1000]
-
+    r_list=[0.9,0.7,0.5,0.3,0.1]
+    N_list=np.arange(10,500,20)
 
 
     train_dataset,eval_dataset=get_data(script_config_path='/home/zhongzec24/RewardModeling/paper_experiment_configs/llama-'+name+'.json')
-    histogram_plot(eval_dataset,name=name)
+ 
     
     if name=='sky':    
         histogram_probs=calibrate_data(train_dataset,eval_dataset,n_bins=n_bins)
-        calibrate_plot(eval_dataset,histogram_probs,n_bins=n_bins)
         #for elements in histogram_probs, if it is less than 0.5, set them to 1-histogram_probs
         
     else:
@@ -285,22 +247,75 @@ def incentive_plot(
     histogram_probs=np.where(histogram_probs<0.5,1-histogram_probs,histogram_probs)
 
     incentive_list=[]
-    for r in r_list:
-        for N in N_list:
-            incentive=get_incentive(histogram_probs,r,N,mode,exact)
-            incentive_list.append(incentive)
-    incentive_list=np.array(incentive_list).reshape(len(r_list),len(N_list))
+    for mode in ['self','expert']:
+        for r in r_list:
+            for N in N_list:
+                incentive=get_incentive(histogram_probs,r,N,mode,exact)
+                incentive_list.append(incentive)
+    incentive_list=np.array(incentive_list).reshape(2,len(r_list),len(N_list))
 
     plt.figure(figsize=(10,10))
-    for i,r in enumerate(r_list):
-        plt.plot(N_list,incentive_list[i],label=f"r={r}",marker='o')
-    plt.xlabel("Number of Samples")
+    mode_line=['-','--']
+    #color_list the same length as r_list wtih color bar of red 
+    num=len(r_list)
+    color_list = plt.cm.Blues(np.linspace(0.5, 0.9, num))
+    mode_name=['Self','Expert']
+    for i,mode in enumerate(['self','expert']):
+        for j,r in enumerate(r_list):
+            plt.plot(N_list,incentive_list[i,j],color=color_list[j],linestyle=mode_line[i]
+            ,markersize=10,linewidth=5)
+    plt.xlabel("$n$")
     plt.ylabel("Incentive")
-    plt.legend()
-    os.makedirs("fig", exist_ok=True)
-    sv_name=name+'_'+mode+'_'
-    sv_name+='_incentive_n_sample.png'
-    plt.savefig("fig/"+sv_name, dpi=300,bbox_inches='tight')  # dpi=300 for high-resolution figure
+    #add grid
+    plt.grid()
+
+    r_legend_handles = []
+    for j, r in enumerate(r_list):
+        # "Dummy" line2D just for the legend
+        line = mlines.Line2D(
+            [], [], 
+            color=color_list[j],
+            linestyle='-',   # style doesn’t matter here, pick any
+            label=f"$\eta =$ {r}",
+            markersize=10,
+            linewidth=5
+
+        )
+        r_legend_handles.append(line)
+
+    legend_r = plt.legend(
+        handles=r_legend_handles,
+        title='$\eta$',
+        loc='upper left'
+    )
+
+ 
+    mode_legend_handles = []
+    for i, m_name in enumerate(mode_name):
+        # "Dummy" line2D just for the legend
+        line = mlines.Line2D(
+            [], [],
+            color='blue',         # color doesn’t matter, pick a neutral color
+            linestyle=mode_line[i],
+            label=m_name,
+            markersize=10,
+            linewidth=5
+        )
+        mode_legend_handles.append(line)
+
+    legend_mode = plt.legend(
+        handles=mode_legend_handles,
+        title='Method',
+        loc='upper right'
+    )
+
+    plt.gca().add_artist(legend_r)
+    plt.gca().add_artist(legend_mode)
+
+    os.makedirs("figs", exist_ok=True)
+    sv_name=name
+    sv_name+='_incentive_n_sample.eps'
+    plt.savefig("figs/"+sv_name, dpi=300,bbox_inches='tight')  # dpi=300 for high-resolution figure
     '''
     #plot x-axix as r
     plt.figure(figsize=(10,10))
@@ -311,14 +326,70 @@ def incentive_plot(
     plt.legend()
     os.makedirs("fig", exist_ok=True)
     sv_name=name+'_'+mode+'_'
-    sv_name+='_incentive_r.png'
+    sv_name+='_incentive_r.eps'
     plt.savefig("fig/"+sv_name, dpi=300,bbox_inches='tight')  # dpi=300 for high-resolution figure
     '''
 
 
+def prob_plot_in_r(
+    name #data can be 'sky','PKU','Helpsteer','Ultra'
+):
+    # change default style figure and font size
+    
+    n_bins = 30
+
+    # Set the random seed for reproducibility
+    seed = 4    
+    set_random_seed(seed)
+
+    mode='expert'
+    exact=True
+    R_up=0.8
+
+    r_list=[0.1,0.3,0.5,0.7,0.9]
+    r_list=np.linspace(0.01,0.9,101)
+
+    N_list=[50,100,500,1000]
+
+
+
+    train_dataset,eval_dataset=get_data(script_config_path='/home/zhongzec24/RewardModeling/paper_experiment_configs/llama-'+name+'.json')
+    
+    if name=='sky':    
+        histogram_probs=calibrate_data(train_dataset,eval_dataset,n_bins=n_bins)
+
+        #for elements in histogram_probs, if it is less than 0.5, set them to 1-histogram_probs
+        
+    else:
+        histogram_probs=np.array(eval_dataset['preference_score'])
+    histogram_probs=np.where(histogram_probs<0.5,1-histogram_probs,histogram_probs)
+    incentive_list=[]
+    for r in r_list:
+        for N in N_list:
+            incentive=-rej_prob(mode, histogram_probs, N,False,r,R_up)
+            incentive_list.append(incentive)
+    incentive_list=np.array(incentive_list).reshape(len(r_list),len(N_list))
+
+
+    #plot x-axix as r
+    plt.figure(figsize=(10,10))
+    for i,N in enumerate(N_list):
+        plt.plot(r_list,incentive_list[:,i],label=f"N={N}",marker='o')
+    plt.xlabel("r")
+    plt.ylabel("Rej. Prob")
+    plt.legend()
+    os.makedirs("fig", exist_ok=True)
+    sv_name=name+'_'+mode+'_'
+    sv_name+='_prob_r.eps'
+    plt.savefig("fig/"+sv_name, dpi=300,bbox_inches='tight')  # dpi=300 for high-resolution figure
+
+
+
 def main():
-    for data_name in ['sky','PKU','Helpsteer','Ultra']:
+    plt.rcParams['font.size'] = 26
+    for data_name in ['PKU','sky','Helpsteer','Ultra']:
         incentive_plot(data_name)
+        #prob_plot_in_r(data_name)
 
 
 

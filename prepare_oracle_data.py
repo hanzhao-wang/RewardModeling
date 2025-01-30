@@ -51,34 +51,19 @@ def infer_rm_score_formatted(
     ds_rslt = Dataset.from_list(ds_processed)
     ds_rslt.save_to_disk(f"statdata/{save_name}_{model_name}")
 
-
-@click.command()
-@click.option(
-    "--built_from", type=click.Choice(["local", "hub"]), default="local"
-)
-@click.option(
-    "--data_path",
-    type=str,
-    default="RLHFlow/PKU-SafeRLHF-30K-standard",
-)
-def main(built_from: Literal["local", "hub"],
-data_path: str = "RLHFlow/UltraFeedback-preference-standard"):
+def build(built_from: Literal["local", "hub"],
+    data_path: str = "RLHFlow/UltraFeedback-preference-standard",
+    model_name: str = "Skywork/Skywork-Reward-Llama-3.1-8B"):
     if built_from == "local":
         ds = load_dataset(
-            data_path, name='default', split="test"
+            data_path, name='default', split="train"
         )
-        '''
-        infer_rm_score_formatted(
-            ds,
-            model_name="Skywork/Skywork-Reward-Gemma-2-27B-v0.2",
-            save_name="",
-        )
-        '''
-        infer_rm_score_formatted(
-            ds,
-            model_name="PKU-Alignment/beaver-7b-v2.0-reward",
-            save_name="",
-        )
+        if model_name != "":
+            infer_rm_score_formatted(
+                ds,
+                model_name=model_name,
+                save_name="",
+            )
         
     elif built_from == "hub":
         if data_path == "Skywork-Reward-Preference-80K-v0.2":
@@ -96,6 +81,25 @@ data_path: str = "RLHFlow/UltraFeedback-preference-standard"):
                 "statdata/"+data_path
             )
 
+def main():
+    data_names=[
+        'RLHFlow/UltraFeedback-preference-standard',
+        "RLHFlow/Helpsteer-preference-standard",
+        "Skywork-Reward-Preference-80K-v0.2",
+        "RLHFlow/PKU-SafeRLHF-30K-standard",
+    ]
+    model_names=['',
+                 '',
+                 'Skywork-Reward-Gemma-2-27B-v0.2',
+                 'PKU-Alignment/beaver-7b-v2.0-reward']
+    build_froms=['local',
+                 'local',
+                 'hub',
+                 'local']
+    for data_name, model_name, built_from in zip(data_names, model_names, build_froms):
+        build(built_from=built_from,
+              data_path=data_name,
+              model_name=model_name)
 
 
 if __name__ == "__main__":
