@@ -16,11 +16,12 @@
     "save_every_steps": 999999,
     "eval_every_steps": 64,
     "use_lora": false,
-    "trainer_type": "ringemargin",
-    "label_type": "oracle",
+    "trainer_type": "oraclece",
+    "label_type": "original",
     "train_set_path": "statdata/prefer_skywork_Skywork/Skywork-Reward-Gemma-2-27B-v0.2",
     "seed": 42,
-    "diff_rescaling_factor": 0.15,
+    "diff_rescaling_factor": 1,
     "warmup_ratio": 0.1,
-    "margin_delta": 2
+    "selected_pos_ratio": 0.9,
+    "select_method": "diff"
 }

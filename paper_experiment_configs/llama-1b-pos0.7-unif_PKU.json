@@ -5,7 +5,7 @@
     "per_device_eval_batch_size": 16,
     "gradient_accumulation_steps": 16,
     "learning_rate": 1e-5,
-    "weight_decay": 1e-3,
+    "weight_decay": 1e-4,
     "bf16": true,
     "num_train_epochs": 2,
     "output_path": "./bt_models",
@@ -17,9 +17,11 @@
     "eval_every_steps": 64,
     "use_lora": false,
     "trainer_type": "oraclece",
-    "label_type": "oracle",
-    "train_set_path": "statdata/prefer_skywork_Skywork/Skywork-Reward-Gemma-2-27B-v0.2",
+    "label_type": "original",
+    "train_set_path": "statdata/RLHFlow/PKU-SafeRLHF-30K-standard",
     "seed": 42,
-    "diff_rescaling_factor": 0.15,
-    "warmup_ratio": 0.1
+    "diff_rescaling_factor": 1,
+    "warmup_ratio": 0.1,
+    "selected_pos_ratio": 1,
+    "select_method": "uniform"
 }

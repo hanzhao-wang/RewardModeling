@@ -17,9 +17,11 @@
     "eval_every_steps": 64,
     "use_lora": false,
     "trainer_type": "oraclece",
-    "label_type": "interpolated",
+    "label_type": "original",
     "train_set_path": "statdata/prefer_skywork_Skywork/Skywork-Reward-Gemma-2-27B-v0.2",
     "seed": 42,
-    "diff_rescaling_factor": 0.15,
-    "warmup_ratio": 0.1
+    "diff_rescaling_factor": 1,
+    "warmup_ratio": 0.1,
+    "selected_pos_ratio": 1,
+    "select_method": "uniform"
 }

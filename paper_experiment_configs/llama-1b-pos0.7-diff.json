@@ -15,12 +15,13 @@
     "max_length": 2048,
     "save_every_steps": 999999,
     "eval_every_steps": 64,
-    "rank_score_key": "fine-grained_score",
+    "use_lora": false,
     "trainer_type": "oraclece",
-    "label_type": "interpolated",
+    "label_type": "original",
     "train_set_path": "statdata/prefer_skywork_Skywork/Skywork-Reward-Gemma-2-27B-v0.2",
     "seed": 42,
     "diff_rescaling_factor": 0.15,
     "warmup_ratio": 0.1,
-    "selected_pos_ratio": 1.0
+    "selected_pos_ratio": 0.7,
+    "select_method": "diff"
 }

@@ -37,8 +37,6 @@ from utils.trainer import (
     RewardTrainer,
     RewardTrainerWithOracleCE,
     RewardTrainerWithRingeMargin,
-    compute_CE_oracle,
-    compute_ML_oracle,
 )
 
 
