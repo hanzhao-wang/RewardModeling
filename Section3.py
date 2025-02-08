@@ -185,12 +185,13 @@ def MI_population(calibrate_probs,expert_mode='random',calulate='max'):
         anno_prob_vector=calibrate_probs
     if calulate=='max':
         MI=Mul_inf_max(expert_prob_vec,anno_prob_vector)
+
     else:
         #eta_prob_vec is uniform seperated in [0,1],i.e., [0,0.01,0.02,...,0.99,1] as benchmark
         eta_prob_vec=np.arange(0,1.01,0.01)
 
         MI=Mul_inf_compute(expert_prob_vec,anno_prob_vector,eta_prob_vec)
-    print(MI)
+    
     return MI
 def MI_n_sample_plot(calibrate_probs,epsilons=[0.1],expert_mode='random',num_samples=[10,100,1000,10000],name=''):
     
@@ -198,6 +199,10 @@ def MI_n_sample_plot(calibrate_probs,epsilons=[0.1],expert_mode='random',num_sam
     num=len(epsilons)
     color_list=plt.cm.Blues(np.linspace(0.5, 0.9, num))
     MI=MI_population(calibrate_probs,expert_mode=expert_mode)
+    print('name',name)
+    print('expert_mode',expert_mode)
+    print('MI',MI)
+    print('________')
     for i,epsilon in enumerate(epsilons):
         LBs=[]
         
@@ -229,6 +234,9 @@ def MI_n_sample_plot_set(calibrate_probs,epsilons=[0.1],num_samples=[10,100,1000
     LBs=[]
     for expert_mode in [1,0.8]:
         MI=MI_population(calibrate_probs,expert_mode=expert_mode)
+        print('name',name)
+        print('expert_mode',expert_mode)
+        print('MI',MI)
         for i,epsilon in enumerate(epsilons):
             for n in num_samples:
                 LB=1-(n*MI+np.log(2))/(1/np.sqrt(2*epsilon)+1)

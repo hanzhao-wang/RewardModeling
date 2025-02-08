@@ -1,12 +1,6 @@
-# Reward Modeling with Ordinal Feedback: Wisdom of the Crowd
-
-This repository contains the code for the paper "Reward Modeling with Ordinal Feedback: Wisdom of the Crowd".
-
-[Arxiv: 2411.12843](https://arxiv.org/abs/2411.12843)
-
 ## Setup
 
-The code is tested on Ubuntu 22.04 with Python 3.10 and cuda 12.1. We run the experiments on A6000 and A100-80G GPU servers. Please make sure you have installed cuda >= 11.6 and satisfy the minimal requirement for flash attention.
+The code is tested on Python 3.10 and cuda 12.1. Please make sure you have installed cuda >= 11.6 and satisfy the minimal requirement for flash attention.
 You can use either
 ```bash
 conda env create -f py310_env.yaml
@@ -35,30 +29,13 @@ We use json configs to manage the experiment settings. You can find all the expe
 ```bash
 python prepare_oracle_data.py
 ```
-It would download and annotate the dataset then save it in `statdata/prefer_skywork_Skywork/Skywork-Reward-Gemma-2-27B-v0.2`. You can also pull it from huggingface hub by running
-```bash
-python prepare_oracle_data.py --built_from hub
-```
+It would download and annotate the dataset.
 
-To run the experiments, use `torchrun` or `accelerate`:
+To run the experiments, 
 ```bash
-torchrun --standalone --nnodes 1 --nproc-per-node 1 run.py PATH/TO/CONFIG.JSON --seed 42  # for single gpu
-accelerate launch run.py PATH/TO/CONFIG.JSON --seed 42  # for multi-gpu
+python Section3.py
+python Section4.py
 ```
-We recommend running our experiments with the number of GPUs mentioned in config names to ensure the correct batch sizes. 
-
-If you have any questions, feel free to open an issue or contact us via [email](mailto:py4contact@gmail.com).
 
 ## Acknowledgements
 This codebase is built on top of [RLHFlow](https://github.com/RLHFlow/RLHF-Reward-Modeling/tree/main/bradley-terry-rm). Special thanks to its creators for their valuable contributions and insights.
-
-## Citation
-If you find this code useful for your research, please consider citing:
-```
-@article{liu2024rewardordinal,
-  title={Reward Modeling with Ordinal Feedback: Wisdom of the Crowd},
-  author={Liu, Shang and Pan, Yu and Chen, Guanting and Li, Xiaocheng},
-  journal={arXiv preprint arXiv:2411.12843},
-  year={2024}
-}
-```
